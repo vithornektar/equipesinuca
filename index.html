@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Torneio de Sinuca - A3FAD</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="app-header no-print">
+  <div class="header-logos">
+    <img id="tournamentLogoPreview" class="logo logo-tournament" src="" alt="Logo do torneio" style="display:none">
+    <div class="header-titles">
+      <h1 id="headerTournamentName">Torneio de Sinuca</h1>
+      <p id="headerTournamentInfo"></p>
+    </div>
+    <img id="a3fadLogoPreview" class="logo logo-a3fad" src="assets/a3fad-logo.png" alt="Logo A3FAD">
+  </div>
+  <nav class="tabs">
+    <button class="tab-btn active" data-tab="registration">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8a2 2 0 012-2h14a2 2 0 012 2v2a2 2 0 000 4v2a2 2 0 01-2 2H5a2 2 0 01-2-2v-2a2 2 0 000-4V8z"/><path d="M13 6v2M13 11v2M13 16v2"/></svg>
+      <span>Inscrição</span>
+    </button>
+    <button class="tab-btn" data-tab="bracket">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h4v4H4zM4 16h4v4H4zM16 10h4v4h-4z"/><path d="M8 6h4a2 2 0 012 2v0M8 18h4a2 2 0 002-2v0M14 12h2"/></svg>
+      <span>Chaveamento</span>
+    </button>
+    <button class="tab-btn" data-tab="config">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/></svg>
+      <span>Configuração</span>
+    </button>
+  </nav>
+</header>
+
+<main>
+  <!-- ===================== REGISTRATION TAB ===================== -->
+  <section id="tab-registration" class="tab-panel active">
+
+    <div class="card">
+      <h2>Configurar Inscrições <span class="hint-inline">(preencha a cada edição do torneio)</span></h2>
+      <div class="form-grid">
+        <label class="full">
+          Texto de divulgação / informações / regras
+          <textarea id="inputRegInfo" rows="8" placeholder="Cole aqui o texto de divulgação do torneio: infos, horários, regras, premiação etc. (igual ao que ia na descrição do formulário antigo)"></textarea>
+        </label>
+        <label>
+          Valor da inscrição
+          <input type="text" id="inputRegFee" placeholder="Ex: R$ 20 por dupla / R$ 10 por pessoa">
+        </label>
+        <label>
+          Chave PIX
+          <input type="text" id="inputRegPix" placeholder="Ex: copadafadesinuca@gmail.com">
+        </label>
+        <label>
+          WhatsApp do responsável (para receber inscrições)
+          <input type="text" id="inputRegWhatsapp" placeholder="Ex: 5551999999999 (DDI+DDD+número, só dígitos)">
+        </label>
+        <label>
+          Horário de início do torneio
+          <input type="text" id="inputRegStartTime" placeholder="Ex: 16h">
+        </label>
+        <label>
+          Vagas totais
+          <input type="number" id="inputRegSlots" min="2" max="16" value="16">
+        </label>
+      </div>
+    </div>
+
+    <div class="card registration-public">
+      <div class="reg-header">
+        <h2 id="regPublicTitle">Inscrições Abertas!</h2>
+        <span class="counter" id="regSlotsCounter">0 / 16 vagas preenchidas</span>
+      </div>
+
+      <div id="regInfoDisplay" class="reg-info-display"></div>
+
+      <form id="formRegistration" class="reg-form">
+        <label class="full">
+          Nome e sobrenome dos membros da dupla *
+          <input type="text" id="regPlayerNames" placeholder="Ex: Davi Cardoso / Gabriella Fernandes" required>
+        </label>
+        <label class="full">
+          Curso UFRGS dos membros da dupla *
+          <input type="text" id="regCourses" placeholder="Ex: Arquitetura / Design" required>
+        </label>
+        <label class="full">
+          Nome da dupla *
+          <input type="text" id="regDuplaName" placeholder="Ex: Turma do Capote" required>
+        </label>
+        <label class="full">
+          Instagram dos membros *
+          <input type="text" id="regInstagram" placeholder="Ex: @davi.dlbc / @g_g_f_d_s" required>
+        </label>
+
+        <fieldset class="full reg-fieldset">
+          <legend>A dupla conseguirá jogar no horário de início? *</legend>
+          <label class="radio-inline"><input type="radio" name="regCanPlay" value="sim" required> Sim</label>
+          <label class="radio-inline"><input type="radio" name="regCanPlay" value="outro"> Outro:
+            <input type="text" id="regCanPlayOther" placeholder="horário mais cedo possível">
+          </label>
+        </fieldset>
+
+        <div class="full reg-payment-box">
+          <strong>Pagamento</strong>
+          <p>Valor: <span id="regFeeDisplay">—</span></p>
+          <p>Chave PIX: <span id="regPixDisplay">—</span></p>
+          <p class="hint">Depois de enviar, mande o comprovante do PIX pelo mesmo WhatsApp.</p>
+        </div>
+
+        <button type="submit" class="btn-primary btn-large full">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+          Enviar Inscrição pelo WhatsApp
+        </button>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2>Inscritos recebidos <span class="hint-inline">(salvos neste navegador)</span></h2>
+      <p class="hint">Ao confirmar o pagamento de uma dupla, use "Adicionar ao chaveamento" para levá-la direto para a aba Chaveamento.</p>
+      <div class="table-wrap">
+        <table class="reg-table">
+          <thead>
+            <tr>
+              <th>Dupla</th>
+              <th>Jogadores</th>
+              <th>Curso</th>
+              <th>Instagram</th>
+              <th>Horário</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="regSubmissionsList"></tbody>
+        </table>
+        <p id="regEmptyState" class="empty-state">Nenhuma inscrição registrada ainda neste navegador.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== BRACKET TAB ===================== -->
+  <section id="tab-bracket" class="tab-panel">
+    <div class="card no-print bracket-toolbar">
+      <p class="hint">Clique no nome de uma dupla para marcá-la como vencedora do confronto e avançar na chave.</p>
+      <div class="toolbar-actions">
+        <button id="btnResortear" class="btn-secondary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0115-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 01-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg>
+          Sortear Novamente
+        </button>
+        <button id="btnExportPdf" class="btn-primary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>
+          Exportar PDF (A4)
+        </button>
+      </div>
+    </div>
+
+    <div id="printHeader" class="print-header">
+      <img id="printTournamentLogo" class="logo logo-tournament" alt="Logo do torneio">
+      <div class="print-titles">
+        <h1 id="printTournamentName">Torneio de Sinuca</h1>
+        <p id="printTournamentInfo"></p>
+      </div>
+      <img id="printA3fadLogo" class="logo logo-a3fad" alt="Logo A3FAD">
+    </div>
+
+    <div id="bracketEmptyState" class="preview-banner no-print">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+      <p>Prévia do formato do torneio — o sorteio oficial ainda não foi feito. Cadastre as duplas e clique em <strong>Sortear Chaveamento</strong> na aba Configuração.</p>
+    </div>
+
+    <div id="bracketContainer" class="bracket-container"></div>
+  </section>
+
+  <!-- ===================== CONFIG TAB ===================== -->
+  <section id="tab-config" class="tab-panel">
+
+    <div id="configLockScreen" class="lock-screen">
+      <div class="lock-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="lock-icon"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/></svg>
+        <h2>Área restrita</h2>
+        <p class="hint">Configurações do torneio: digite a senha para editar.</p>
+        <form id="formConfigUnlock" class="lock-form">
+          <input type="password" id="inputConfigPasswordAttempt" placeholder="Senha" autocomplete="current-password">
+          <button type="submit" class="btn-primary">Entrar</button>
+        </form>
+        <p id="configUnlockError" class="lock-error"></p>
+      </div>
+    </div>
+
+    <div id="configContent">
+
+    <div class="card actions-card">
+      <button id="btnLockConfig" class="btn-secondary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/></svg>
+        Bloquear configurações
+      </button>
+    </div>
+
+    <div class="card">
+      <h2>Segurança</h2>
+      <p class="hint">Defina uma senha para impedir que qualquer pessoa mude os dados do torneio. Atenção: como o site não tem servidor, essa senha só afasta curiosos — ela fica salva no próprio navegador, não é uma proteção de verdade contra alguém com acesso ao código.</p>
+      <div class="form-grid">
+        <label>
+          Nova senha
+          <input type="password" id="inputNewConfigPassword" placeholder="Deixe em branco para remover a senha" autocomplete="new-password">
+        </label>
+        <label class="actions-inline-label">
+          <span>&nbsp;</span>
+          <button type="button" id="btnSaveConfigPassword" class="btn-primary">Salvar senha</button>
+        </label>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Dados do Torneio</h2>
+      <div class="form-grid">
+        <label>
+          Nome do Torneio
+          <input type="text" id="inputTournamentName" placeholder="Ex: Torneio Temático - Edição Junina">
+        </label>
+        <label>
+          Data
+          <input type="date" id="inputTournamentDate">
+        </label>
+        <label class="full">
+          Local
+          <input type="text" id="inputTournamentLocation" placeholder="Ex: Sede A3FAD">
+        </label>
+      </div>
+
+      <div class="logo-uploads">
+        <div class="logo-upload-box">
+          <span class="logo-label">Logo do Torneio (temático, editável a cada edição)</span>
+          <div class="logo-preview-wrap">
+            <img id="logoTournamentBig" class="logo-preview" alt="prévia logo torneio">
+            <span id="logoTournamentPlaceholder" class="logo-placeholder">Sem logo</span>
+          </div>
+          <input type="file" id="fileTournamentLogo" accept="image/*">
+          <button class="btn-small btn-danger" id="btnClearTournamentLogo">Remover logo</button>
+        </div>
+
+        <div class="logo-upload-box">
+          <span class="logo-label">Logo A3FAD (identidade visual da equipe)</span>
+          <div class="logo-preview-wrap">
+            <img id="logoA3fadBig" class="logo-preview" alt="prévia logo A3FAD">
+            <span id="logoA3fadPlaceholder" class="logo-placeholder">Sem logo</span>
+          </div>
+          <input type="file" id="fileA3fadLogo" accept="image/*">
+          <button class="btn-small btn-danger" id="btnClearA3fadLogo">Restaurar padrão</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Duplas <span class="counter" id="duplasCounter">0 / 16</span></h2>
+      <p class="hint">Cadastre de 2 a 16 duplas. O chaveamento sempre começa nas Oitavas de Final; se houver menos de 16 duplas, o sistema define automaticamente byes (vagas de avanço direto) no sorteio.</p>
+
+      <form id="formAddDupla" class="add-dupla-form">
+        <input type="text" id="inputDuplaName" placeholder="Nome da dupla (ex: João / Pedro)" maxlength="60">
+        <button type="submit" class="btn-primary">Adicionar</button>
+      </form>
+
+      <ol id="duplasList" class="duplas-list"></ol>
+    </div>
+
+    <div class="card actions-card">
+      <button id="btnSortear" class="btn-primary btn-large">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><path d="M6.5 6.5h0M17.5 6.5h0M6.5 17.5h0M17.5 17.5h0"/></svg>
+        Sortear Chaveamento
+      </button>
+      <button id="btnResetTournament" class="btn-secondary">Novo Torneio (limpar tudo)</button>
+    </div>
+
+    </div><!-- /configContent -->
+  </section>
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>
