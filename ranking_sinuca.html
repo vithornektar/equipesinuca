@@ -11,9 +11,6 @@
     --felt: #0e3d2c;
     --felt-dark: #082a1e;
     --felt-line: rgba(255,255,255,0.045);
-    --wood: #5c3820;
-    --wood-light: #7a4a2e;
-    --wood-dark: #2e1a0d;
     --cream: #f2ead4;
     --cream-dim: #cbc0a3;
     --ink: #1c2a20;
@@ -41,19 +38,14 @@
   .rail{
     max-width:1000px;
     margin:0 auto;
-    background:var(--wood);
-    background-image: linear-gradient(160deg, var(--wood-light), var(--wood) 40%, var(--wood-dark) 100%);
-    border-radius:22px;
-    padding:14px;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(240,180,41,0.35), inset 0 0 0 3px rgba(0,0,0,0.4);
   }
   .cloth{
     background:
       repeating-linear-gradient(45deg, var(--felt-line) 0 2px, transparent 2px 6px),
       radial-gradient(ellipse at 20% 0%, #124a35, var(--felt) 55%, #0a3324 100%);
-    border-radius:14px;
+    border-radius:18px;
     padding:28px 24px 20px;
-    box-shadow: inset 0 0 40px rgba(0,0,0,0.45), inset 0 0 0 2px rgba(0,0,0,0.25);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(240,180,41,0.35), inset 0 0 40px rgba(0,0,0,0.45), inset 0 0 0 2px rgba(0,0,0,0.25);
   }
 
   header.top{ text-align:center; margin-bottom:22px; }
@@ -265,10 +257,15 @@
     overflow:hidden;
     overflow-x:auto;
     scrollbar-width:thin; scrollbar-color: var(--gold) rgba(255,255,255,0.1);
+    /* truque pra barra de rolagem ficar em cima em vez de embaixo: inverte a
+       caixa verticalmente (o que joga a barra pra cima) e desinverte o
+       conteúdo de dentro pra ele continuar normal. */
+    transform: scaleY(-1);
   }
   .rank-table-wrap::-webkit-scrollbar{ height:6px; }
   .rank-table-wrap::-webkit-scrollbar-track{ background:rgba(255,255,255,0.08); }
   .rank-table-wrap::-webkit-scrollbar-thumb{ background:var(--gold); border-radius:3px; }
+  .rank-table-wrap > table{ transform: scaleY(-1); }
   table{ width:100%; border-collapse:collapse; min-width:560px; }
   table.table-compact{ min-width:0; }
   thead th{
