@@ -845,10 +845,10 @@
 const SUPABASE_URL = "https://vpezivssklgsvhkxvkaj.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_pbMXM5eECLoevmKNneGMuw_pA6Afc8U";
 const ADMIN_EMAIL = "adm@sinuca.local";
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 function publicPhotoUrl(path){
-  return supabase.storage.from('photos').getPublicUrl(path).data.publicUrl;
+  return sb.storage.from('photos').getPublicUrl(path).data.publicUrl;
 }
 
 async function dataUrlToBlob(dataUrl){
@@ -1019,8 +1019,8 @@ function allResults(){ return RESULTS.concat(customResults); }
 async function loadCustomData(){
   try{
     const [compRes, resRes] = await Promise.all([
-      supabase.from('competitions').select('*'),
-      supabase.from('results').select('*')
+      sb.from('competitions').select('*'),
+      sb.from('results').select('*')
     ]);
     customCompetitions = {};
     (compRes.data || []).forEach(c => {
@@ -1039,12 +1039,12 @@ async function loadCustomData(){
 
 async function saveCustomData(){
   try{
-    await supabase.from('results').delete().gte('id', 0);
-    await supabase.from('competitions').delete().neq('id', '__none__');
+    await sb.from('results').delete().gte('id', 0);
+    await sb.from('competitions').delete().neq('id', '__none__');
     const compRows = Object.entries(customCompetitions).map(([id,c]) => ({ id, name: c.name, type: c.type, color: c.color }));
     const resultRows = customResults.map(r => ({ comp: r.comp, edition: r.edition, pos: r.pos, players: r.players }));
-    if(compRows.length) await supabase.from('competitions').insert(compRows);
-    if(resultRows.length) await supabase.from('results').insert(resultRows);
+    if(compRows.length) await sb.from('competitions').insert(compRows);
+    if(resultRows.length) await sb.from('results').insert(resultRows);
   }catch(e){
     alert('Não foi possível salvar os dados agora. Verifique se você está logado como admin e tente novamente.');
   }
@@ -1090,7 +1090,7 @@ let lightboxIndex = 0;
 
 async function loadGalleryData(){
   try{
-    const { data } = await supabase.from('gallery_photos').select('*');
+    const { data } = await sb.from('gallery_photos').select('*');
     galleryPhotos = (data || []).map(p => ({
       id: p.id, comp: p.comp, edition: p.edition, caption: p.caption,
       image_path: p.image_path, dataUrl: publicPhotoUrl(p.image_path)
@@ -1108,7 +1108,7 @@ let playerPhotoIndex = [];
 
 async function loadPlayerPhotoIndex(){
   try{
-    const { data } = await supabase.from('player_photos').select('*');
+    const { data } = await sb.from('player_photos').select('*');
     playerPhotoIndex = [];
     (data || []).forEach(row => {
       playerPhotoIndex.push(row.slug);
@@ -1141,7 +1141,7 @@ let retiredPlayers = [...DEFAULT_RETIRED_PLAYERS];
 
 async function loadRetiredPlayers(){
   try{
-    const { data } = await supabase.from('retired_players').select('*');
+    const { data } = await sb.from('retired_players').select('*');
     if(data && data.length) retiredPlayers = data.map(r => r.name);
   }catch(e){
     // sem conexão ainda — mantém a lista padrão acima
@@ -1150,8 +1150,8 @@ async function loadRetiredPlayers(){
 
 async function saveRetiredPlayers(){
   try{
-    await supabase.from('retired_players').delete().neq('name', '__none__');
-    if(retiredPlayers.length) await supabase.from('retired_players').insert(retiredPlayers.map(name => ({ name })));
+    await sb.from('retired_players').delete().neq('name', '__none__');
+    if(retiredPlayers.length) await sb.from('retired_players').insert(retiredPlayers.map(name => ({ name })));
   }catch(e){
     alert('Não foi possível salvar agora. Verifique se você está logado como admin e tente novamente.');
   }
@@ -1873,7 +1873,7 @@ async function togglePlayerDetail(row){
     try{
       let dataUrl = playerPhotoCache[slug];
       if(!dataUrl){
-        const { data } = await supabase.from('player_photos').select('image_path').eq('slug', slug).maybeSingle();
+        const { data } = await sb.from('player_photos').select('image_path').eq('slug', slug).maybeSingle();
         if(data){ dataUrl = publicPhotoUrl(data.image_path); playerPhotoCache[slug] = dataUrl; }
       }
       if(dataUrl){
@@ -2100,7 +2100,7 @@ document.getElementById('btnAdminLogin').addEventListener('click', async () => {
   const btn = document.getElementById('btnAdminLogin');
   btn.disabled = true;
   msg.textContent = 'Entrando...';
-  const { error } = await supabase.auth.signInWithPassword({ email: ADMIN_EMAIL, password: val });
+  const { error } = await sb.auth.signInWithPassword({ email: ADMIN_EMAIL, password: val });
   btn.disabled = false;
   if(error){
     msg.textContent = 'Senha incorreta.';
@@ -2113,7 +2113,7 @@ document.getElementById('adminPassInput').addEventListener('keydown', e => {
   if(e.key === 'Enter') document.getElementById('btnAdminLogin').click();
 });
 document.getElementById('btnAdminLogout').addEventListener('click', async () => {
-  await supabase.auth.signOut();
+  await sb.auth.signOut();
   showAdminLogin();
 });
 
@@ -2206,9 +2206,9 @@ document.getElementById('btnAddPhoto').addEventListener('click', async () => {
     const id = 'p_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
     const path = 'gallery/' + id + '.jpg';
 
-    const { error: upErr } = await supabase.storage.from('photos').upload(path, blob, { contentType: 'image/jpeg' });
+    const { error: upErr } = await sb.storage.from('photos').upload(path, blob, { contentType: 'image/jpeg' });
     if(upErr) throw upErr;
-    const { error: insErr } = await supabase.from('gallery_photos').insert({ id, comp: compId, edition, caption, image_path: path });
+    const { error: insErr } = await sb.from('gallery_photos').insert({ id, comp: compId, edition, caption, image_path: path });
     if(insErr) throw insErr;
     galleryPhotos.push({ id, comp: compId, edition, caption, image_path: path, dataUrl: publicPhotoUrl(path) });
 
@@ -2248,8 +2248,8 @@ function renderAdminPhotos(){
       if(!confirm('Remover essa foto da galeria?')) return;
       const photo = galleryPhotos.find(p => p.id === id);
       try{
-        if(photo) await supabase.storage.from('photos').remove([photo.image_path]);
-        await supabase.from('gallery_photos').delete().eq('id', id);
+        if(photo) await sb.storage.from('photos').remove([photo.image_path]);
+        await sb.from('gallery_photos').delete().eq('id', id);
       }catch(e){}
       galleryPhotos = galleryPhotos.filter(p => p.id !== id);
       renderGallery();
@@ -2286,9 +2286,9 @@ document.getElementById('btnAddPlayerPhoto').addEventListener('click', async () 
     const slug = slugifyName(name);
     const path = 'players/' + slug + '.jpg';
 
-    const { error: upErr } = await supabase.storage.from('photos').upload(path, blob, { contentType: 'image/jpeg', upsert: true });
+    const { error: upErr } = await sb.storage.from('photos').upload(path, blob, { contentType: 'image/jpeg', upsert: true });
     if(upErr) throw upErr;
-    const { error: insErr } = await supabase.from('player_photos').upsert({ slug, name, image_path: path });
+    const { error: insErr } = await sb.from('player_photos').upsert({ slug, name, image_path: path });
     if(insErr) throw insErr;
     if(!playerPhotoIndex.includes(slug)) playerPhotoIndex.push(slug);
     playerPhotoCache[slug] = publicPhotoUrl(path);
@@ -2314,7 +2314,7 @@ function renderAdminPlayerPhotoList(){
   Promise.all(playerPhotoIndex.map(async slug => {
     if(playerPhotoCache[slug]) return { slug, name: null, dataUrl: playerPhotoCache[slug] };
     try{
-      const { data } = await supabase.from('player_photos').select('*').eq('slug', slug).maybeSingle();
+      const { data } = await sb.from('player_photos').select('*').eq('slug', slug).maybeSingle();
       if(data){
         playerPhotoCache[slug] = publicPhotoUrl(data.image_path);
         return { slug, name: data.name, dataUrl: playerPhotoCache[slug] };
@@ -2332,8 +2332,8 @@ function renderAdminPlayerPhotoList(){
         const slug = btn.dataset.delplayerphoto;
         if(!confirm('Remover essa foto?')) return;
         try{
-          await supabase.storage.from('photos').remove(['players/' + slug + '.jpg']);
-          await supabase.from('player_photos').delete().eq('slug', slug);
+          await sb.storage.from('photos').remove(['players/' + slug + '.jpg']);
+          await sb.from('player_photos').delete().eq('slug', slug);
         }catch(e){}
         playerPhotoIndex = playerPhotoIndex.filter(s => s !== slug);
         delete playerPhotoCache[slug];
@@ -2496,7 +2496,7 @@ async function init(){
   await loadRetiredPlayers();
   renderMilestones();
 
-  const { data: { session } } = await supabase.auth.getSession();
+  const { data: { session } } = await sb.auth.getSession();
   if(session) showAdminPanel();
 }
 init();
