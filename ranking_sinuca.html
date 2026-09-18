@@ -101,7 +101,7 @@
   .scroll-fade::after{ right:0; background:linear-gradient(to left, rgba(0,0,0,0.55), transparent); }
   .scroll-fade.can-scroll-left::before{ opacity:1; }
   .scroll-fade.can-scroll-right::after{ opacity:1; }
-  .rank-table-wrap.scroll-fade::before, .rank-table-wrap.scroll-fade::after{ bottom:0; }
+  .scroll-fade.table-fade::before, .scroll-fade.table-fade::after{ bottom:0; }
   .tab-btn{
     font-family:'Anton', sans-serif;
     letter-spacing:.06em;
@@ -592,13 +592,15 @@
       <p class="sub">Pontuação por colocação, com peso maior para as copas e peso menor para o torneio de duplas. Ajuste os pesos e filtros abaixo.</p>
     </header>
 
-    <nav class="tabs scroll-fade">
-      <button class="tab-btn active" data-tab="ranking">🏆 Ranking</button>
-      <button class="tab-btn" data-tab="history">📜 Histórico</button>
-      <button class="tab-btn" data-tab="milestones">🎖️ Marcos</button>
-      <button class="tab-btn" data-tab="gallery">🖼️ Galeria</button>
-      <button class="tab-btn" data-tab="admin">🔐 Admin</button>
-    </nav>
+    <div class="scroll-fade">
+      <nav class="tabs">
+        <button class="tab-btn active" data-tab="ranking">🏆 Ranking</button>
+        <button class="tab-btn" data-tab="history">📜 Histórico</button>
+        <button class="tab-btn" data-tab="milestones">🎖️ Marcos</button>
+        <button class="tab-btn" data-tab="gallery">🖼️ Galeria</button>
+        <button class="tab-btn" data-tab="admin">🔐 Admin</button>
+      </nav>
+    </div>
 
     <section id="panel-ranking">
       <div class="comp-info-grid" id="compInfoGrid"></div>
@@ -660,34 +662,38 @@
 
       <div class="podium" id="podium"></div>
 
-      <div class="rank-table-wrap scroll-fade">
-        <table>
-          <thead>
-            <tr>
-              <th class="pos-cell">#</th>
-              <th>Jogador(a)</th>
-              <th>Competições</th>
-              <th>Pódios</th>
-              <th style="text-align:right;">Pontos</th>
-            </tr>
-          </thead>
-          <tbody id="rankBody"></tbody>
-        </table>
+      <div class="scroll-fade table-fade">
+        <div class="rank-table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th class="pos-cell">#</th>
+                <th>Jogador(a)</th>
+                <th>Competições</th>
+                <th>Pódios</th>
+                <th style="text-align:right;">Pontos</th>
+              </tr>
+            </thead>
+            <tbody id="rankBody"></tbody>
+          </table>
+        </div>
       </div>
 
       <div class="milestone-block-title" style="margin:26px 0 12px;">🎓 Ranking de Títulos por Curso</div>
       <p class="milestone-sub" style="margin-top:-8px;">Quantidade de vezes que cada curso foi campeão (1º lugar), somando as competições marcadas acima em "Configurações do ranking".</p>
-      <div class="rank-table-wrap scroll-fade">
-        <table class="table-compact">
-          <thead>
-            <tr>
-              <th class="pos-cell">#</th>
-              <th>Curso</th>
-              <th style="text-align:right;">Títulos</th>
-            </tr>
-          </thead>
-          <tbody id="courseTitleBody"></tbody>
-        </table>
+      <div class="scroll-fade table-fade">
+        <div class="rank-table-wrap">
+          <table class="table-compact">
+            <thead>
+              <tr>
+                <th class="pos-cell">#</th>
+                <th>Curso</th>
+                <th style="text-align:right;">Títulos</th>
+              </tr>
+            </thead>
+            <tbody id="courseTitleBody"></tbody>
+          </table>
+        </div>
       </div>
     </section>
 
@@ -875,9 +881,10 @@ function publicPhotoUrl(path){
 // horizontalmente (abas e tabela do ranking), conforme a posição do scroll.
 function setupScrollHint(el){
   if(!el) return;
+  const host = el.parentElement; // .scroll-fade — não rola, então a sombra fica fixa na borda
   function update(){
-    el.classList.toggle('can-scroll-left', el.scrollLeft > 4);
-    el.classList.toggle('can-scroll-right', el.scrollLeft < el.scrollWidth - el.clientWidth - 4);
+    host.classList.toggle('can-scroll-left', el.scrollLeft > 4);
+    host.classList.toggle('can-scroll-right', el.scrollLeft < el.scrollWidth - el.clientWidth - 4);
   }
   el.addEventListener('scroll', update, { passive:true });
   window.addEventListener('resize', update);
@@ -2532,7 +2539,8 @@ async function init(){
   const { data: { session } } = await sb.auth.getSession();
   if(session) showAdminPanel();
 
-  document.querySelectorAll('.scroll-fade').forEach(setupScrollHint);
+  setupScrollHint(document.querySelector('.tabs'));
+  document.querySelectorAll('.rank-table-wrap').forEach(setupScrollHint);
 }
 init();
 </script>
