@@ -717,7 +717,10 @@
       </div>
 
       <div id="adminPanel" hidden>
-        <div class="admin-warning">⚠️ Os dados adicionados aqui ficam salvos junto com esta página e são visíveis a todas as pessoas que a abrirem — não é um login "de verdade", é só uma trava simples para evitar edições por acidente.</div>
+        <div class="admin-warning" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+          <span>✅ Você está logado(a) como admin. Tudo o que adicionar aqui fica salvo de verdade e visível pra qualquer um que abrir o site.</span>
+          <button class="qbtn" id="btnAdminLogout">Sair</button>
+        </div>
 
         <div class="controls">
           <span class="ctrl-label">Criar nova competição (opcional)</span>
@@ -834,7 +837,25 @@
 
 <div id="lightboxOverlay" class="lightbox" hidden></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.js"></script>
 <script>
+// Backend real (banco de dados + login + fotos). A anon key é pública por
+// design — a proteção fica nas regras de segurança (RLS) do banco, ver
+// supabase/schema.sql.
+const SUPABASE_URL = "https://vpezivssklgsvhkxvkaj.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_pbMXM5eECLoevmKNneGMuw_pA6Afc8U";
+const ADMIN_EMAIL = "adm@sinuca.local";
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+function publicPhotoUrl(path){
+  return supabase.storage.from('photos').getPublicUrl(path).data.publicUrl;
+}
+
+async function dataUrlToBlob(dataUrl){
+  const res = await fetch(dataUrl);
+  return await res.blob();
+}
+
 const COMPETITIONS = {
   fad:       { name: "Copa FAD",         type: "copa",  color: "#d9ab34" },
   minas:     { name: "Copa das Minas",   type: "copa",  color: "#c8402f" },
@@ -985,9 +1006,9 @@ let courseFilter = "all";
 let genderFilter = "all";
 
 /* ---------------- ADMIN / DADOS CUSTOM ---------------- */
-// Troque a senha abaixo pela sua própria. Isto é uma trava simples do lado do
-// cliente (não é segurança de verdade, já que o código fica visível).
-const ADMIN_PASSWORD = "sinuca2026";
+// A senha não fica mais no código: o login é validado de verdade pelo
+// Supabase Auth, e as regras de segurança (RLS) no banco bloqueiam qualquer
+// escrita de quem não estiver logado como admin — ver supabase/schema.sql.
 let isAdmin = false;
 let customCompetitions = {};
 let customResults = [];
@@ -997,27 +1018,35 @@ function allResults(){ return RESULTS.concat(customResults); }
 
 async function loadCustomData(){
   try{
-    const res = await window.storage.get('sinuca-custom-data', true);
-    if(res && res.value){
-      const parsed = JSON.parse(res.value);
-      customCompetitions = parsed.competitions || {};
-      customResults = parsed.results || [];
-      Object.keys(customCompetitions).forEach(id => {
-        const c = customCompetitions[id];
-        if(!(id in weights)) weights[id] = c.type === 'copa' ? 1.0 : 0.5;
-        if(!(id in active)) active[id] = true;
-      });
-    }
+    const [compRes, resRes] = await Promise.all([
+      supabase.from('competitions').select('*'),
+      supabase.from('results').select('*')
+    ]);
+    customCompetitions = {};
+    (compRes.data || []).forEach(c => {
+      customCompetitions[c.id] = { name: c.name, type: c.type, color: c.color };
+    });
+    customResults = (resRes.data || []).map(r => ({ comp: r.comp, edition: r.edition, pos: r.pos, players: r.players }));
+    Object.keys(customCompetitions).forEach(id => {
+      const c = customCompetitions[id];
+      if(!(id in weights)) weights[id] = c.type === 'copa' ? 1.0 : 0.5;
+      if(!(id in active)) active[id] = true;
+    });
   }catch(e){
-    // ainda não existem dados salvos — segue com os padrões
+    // sem conexão com o banco ainda — segue com os padrões
   }
 }
 
 async function saveCustomData(){
   try{
-    await window.storage.set('sinuca-custom-data', JSON.stringify({ competitions: customCompetitions, results: customResults }), true);
+    await supabase.from('results').delete().gte('id', 0);
+    await supabase.from('competitions').delete().neq('id', '__none__');
+    const compRows = Object.entries(customCompetitions).map(([id,c]) => ({ id, name: c.name, type: c.type, color: c.color }));
+    const resultRows = customResults.map(r => ({ comp: r.comp, edition: r.edition, pos: r.pos, players: r.players }));
+    if(compRows.length) await supabase.from('competitions').insert(compRows);
+    if(resultRows.length) await supabase.from('results').insert(resultRows);
   }catch(e){
-    alert('Não foi possível salvar os dados agora. Tente novamente em instantes.');
+    alert('Não foi possível salvar os dados agora. Verifique se você está logado como admin e tente novamente.');
   }
 }
 
@@ -1055,26 +1084,19 @@ const BUILT_IN_GALLERY_PHOTOS = [
   }
 ];
 
-let galleryIndex = [];
 let galleryPhotos = [];
 let lightboxPhotos = [];
 let lightboxIndex = 0;
 
 async function loadGalleryData(){
   try{
-    const idxRes = await window.storage.get('sinuca-gallery-index', true);
-    galleryIndex = (idxRes && idxRes.value) ? JSON.parse(idxRes.value) : [];
+    const { data } = await supabase.from('gallery_photos').select('*');
+    galleryPhotos = (data || []).map(p => ({
+      id: p.id, comp: p.comp, edition: p.edition, caption: p.caption,
+      image_path: p.image_path, dataUrl: publicPhotoUrl(p.image_path)
+    }));
   }catch(e){
-    galleryIndex = [];
-  }
-  galleryPhotos = [];
-  for(const id of galleryIndex){
-    try{
-      const res = await window.storage.get('sinuca-gallery-photo:' + id, true);
-      if(res && res.value) galleryPhotos.push(JSON.parse(res.value));
-    }catch(e){
-      // foto corrompida ou removida — ignora
-    }
+    galleryPhotos = [];
   }
 }
 
@@ -1086,8 +1108,12 @@ let playerPhotoIndex = [];
 
 async function loadPlayerPhotoIndex(){
   try{
-    const res = await window.storage.get('sinuca-player-photo-index', true);
-    playerPhotoIndex = (res && res.value) ? JSON.parse(res.value) : [];
+    const { data } = await supabase.from('player_photos').select('*');
+    playerPhotoIndex = [];
+    (data || []).forEach(row => {
+      playerPhotoIndex.push(row.slug);
+      playerPhotoCache[row.slug] = publicPhotoUrl(row.image_path);
+    });
   }catch(e){
     playerPhotoIndex = [];
   }
@@ -1115,18 +1141,19 @@ let retiredPlayers = [...DEFAULT_RETIRED_PLAYERS];
 
 async function loadRetiredPlayers(){
   try{
-    const res = await window.storage.get('sinuca-retired-players', true);
-    if(res && res.value) retiredPlayers = JSON.parse(res.value);
+    const { data } = await supabase.from('retired_players').select('*');
+    if(data && data.length) retiredPlayers = data.map(r => r.name);
   }catch(e){
-    // sem dados salvos ainda — mantém a lista padrão acima
+    // sem conexão ainda — mantém a lista padrão acima
   }
 }
 
 async function saveRetiredPlayers(){
   try{
-    await window.storage.set('sinuca-retired-players', JSON.stringify(retiredPlayers), true);
+    await supabase.from('retired_players').delete().neq('name', '__none__');
+    if(retiredPlayers.length) await supabase.from('retired_players').insert(retiredPlayers.map(name => ({ name })));
   }catch(e){
-    alert('Não foi possível salvar agora. Tente novamente.');
+    alert('Não foi possível salvar agora. Verifique se você está logado como admin e tente novamente.');
   }
 }
 
@@ -1846,8 +1873,8 @@ async function togglePlayerDetail(row){
     try{
       let dataUrl = playerPhotoCache[slug];
       if(!dataUrl){
-        const res = await window.storage.get('sinuca-player-photo:' + slug, true);
-        if(res && res.value){ dataUrl = JSON.parse(res.value).dataUrl; playerPhotoCache[slug] = dataUrl; }
+        const { data } = await supabase.from('player_photos').select('image_path').eq('slug', slug).maybeSingle();
+        if(data){ dataUrl = publicPhotoUrl(data.image_path); playerPhotoCache[slug] = dataUrl; }
       }
       if(dataUrl){
         const avatarEl = document.getElementById('avatar-' + slug);
@@ -2046,28 +2073,48 @@ document.getElementById('searchInput').addEventListener('input', e => {
 });
 
 /* ---------------- ADMIN: LOGIN ---------------- */
-document.getElementById('btnAdminLogin').addEventListener('click', () => {
+function showAdminPanel(){
+  isAdmin = true;
+  document.getElementById('adminLogin').hidden = true;
+  document.getElementById('adminPanel').hidden = false;
+  populateResCompSelect();
+  renderAdminEntries();
+  populatePhotoCompSelect();
+  renderAdminPhotos();
+  populatePlayerPhotoSelect();
+  renderAdminPlayerPhotoList();
+  populateRetiredSelect();
+  renderAdminRetiredList();
+}
+
+function showAdminLogin(){
+  isAdmin = false;
+  document.getElementById('adminLogin').hidden = false;
+  document.getElementById('adminPanel').hidden = true;
+  document.getElementById('adminPassInput').value = '';
+}
+
+document.getElementById('btnAdminLogin').addEventListener('click', async () => {
   const val = document.getElementById('adminPassInput').value;
   const msg = document.getElementById('adminLoginMsg');
-  if(val === ADMIN_PASSWORD){
-    isAdmin = true;
-    document.getElementById('adminLogin').hidden = true;
-    document.getElementById('adminPanel').hidden = false;
-    msg.textContent = '';
-    populateResCompSelect();
-    renderAdminEntries();
-    populatePhotoCompSelect();
-    renderAdminPhotos();
-    populatePlayerPhotoSelect();
-    renderAdminPlayerPhotoList();
-    populateRetiredSelect();
-    renderAdminRetiredList();
-  } else {
+  const btn = document.getElementById('btnAdminLogin');
+  btn.disabled = true;
+  msg.textContent = 'Entrando...';
+  const { error } = await supabase.auth.signInWithPassword({ email: ADMIN_EMAIL, password: val });
+  btn.disabled = false;
+  if(error){
     msg.textContent = 'Senha incorreta.';
+    return;
   }
+  msg.textContent = '';
+  showAdminPanel();
 });
 document.getElementById('adminPassInput').addEventListener('keydown', e => {
   if(e.key === 'Enter') document.getElementById('btnAdminLogin').click();
+});
+document.getElementById('btnAdminLogout').addEventListener('click', async () => {
+  await supabase.auth.signOut();
+  showAdminLogin();
 });
 
 /* ---------------- ADMIN: CAMPOS DE JOGADORES ---------------- */
@@ -2155,13 +2202,15 @@ document.getElementById('btnAddPhoto').addEventListener('click', async () => {
 
   try{
     const dataUrl = await resizeImageFile(fileInput.files[0], 1400, 0.82);
+    const blob = await dataUrlToBlob(dataUrl);
     const id = 'p_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-    const photo = { id, comp: compId, edition, caption, dataUrl };
+    const path = 'gallery/' + id + '.jpg';
 
-    await window.storage.set('sinuca-gallery-photo:' + id, JSON.stringify(photo), true);
-    galleryIndex.push(id);
-    await window.storage.set('sinuca-gallery-index', JSON.stringify(galleryIndex), true);
-    galleryPhotos.push(photo);
+    const { error: upErr } = await supabase.storage.from('photos').upload(path, blob, { contentType: 'image/jpeg' });
+    if(upErr) throw upErr;
+    const { error: insErr } = await supabase.from('gallery_photos').insert({ id, comp: compId, edition, caption, image_path: path });
+    if(insErr) throw insErr;
+    galleryPhotos.push({ id, comp: compId, edition, caption, image_path: path, dataUrl: publicPhotoUrl(path) });
 
     fileInput.value = '';
     document.getElementById('photoEdition').value = '';
@@ -2197,10 +2246,12 @@ function renderAdminPhotos(){
     btn.addEventListener('click', async () => {
       const id = btn.dataset.delphoto;
       if(!confirm('Remover essa foto da galeria?')) return;
-      try{ await window.storage.delete('sinuca-gallery-photo:' + id, true); }catch(e){}
-      galleryIndex = galleryIndex.filter(gid => gid !== id);
+      const photo = galleryPhotos.find(p => p.id === id);
+      try{
+        if(photo) await supabase.storage.from('photos').remove([photo.image_path]);
+        await supabase.from('gallery_photos').delete().eq('id', id);
+      }catch(e){}
       galleryPhotos = galleryPhotos.filter(p => p.id !== id);
-      await window.storage.set('sinuca-gallery-index', JSON.stringify(galleryIndex), true);
       renderGallery();
       renderAdminPhotos();
     });
@@ -2231,13 +2282,16 @@ document.getElementById('btnAddPlayerPhoto').addEventListener('click', async () 
 
   try{
     const dataUrl = await resizeImageFile(fileInput.files[0], 500, 0.85);
+    const blob = await dataUrlToBlob(dataUrl);
     const slug = slugifyName(name);
-    await window.storage.set('sinuca-player-photo:' + slug, JSON.stringify({ name, dataUrl }), true);
-    if(!playerPhotoIndex.includes(slug)){
-      playerPhotoIndex.push(slug);
-      await window.storage.set('sinuca-player-photo-index', JSON.stringify(playerPhotoIndex), true);
-    }
-    playerPhotoCache[slug] = dataUrl;
+    const path = 'players/' + slug + '.jpg';
+
+    const { error: upErr } = await supabase.storage.from('photos').upload(path, blob, { contentType: 'image/jpeg', upsert: true });
+    if(upErr) throw upErr;
+    const { error: insErr } = await supabase.from('player_photos').upsert({ slug, name, image_path: path });
+    if(insErr) throw insErr;
+    if(!playerPhotoIndex.includes(slug)) playerPhotoIndex.push(slug);
+    playerPhotoCache[slug] = publicPhotoUrl(path);
 
     fileInput.value = '';
     msg.textContent = 'Foto adicionada!';
@@ -2260,11 +2314,10 @@ function renderAdminPlayerPhotoList(){
   Promise.all(playerPhotoIndex.map(async slug => {
     if(playerPhotoCache[slug]) return { slug, name: null, dataUrl: playerPhotoCache[slug] };
     try{
-      const res = await window.storage.get('sinuca-player-photo:' + slug, true);
-      if(res && res.value){
-        const parsed = JSON.parse(res.value);
-        playerPhotoCache[slug] = parsed.dataUrl;
-        return { slug, name: parsed.name, dataUrl: parsed.dataUrl };
+      const { data } = await supabase.from('player_photos').select('*').eq('slug', slug).maybeSingle();
+      if(data){
+        playerPhotoCache[slug] = publicPhotoUrl(data.image_path);
+        return { slug, name: data.name, dataUrl: playerPhotoCache[slug] };
       }
     }catch(e){ /* ignora foto corrompida */ }
     return { slug, name: null, dataUrl: null };
@@ -2278,10 +2331,12 @@ function renderAdminPlayerPhotoList(){
       btn.addEventListener('click', async () => {
         const slug = btn.dataset.delplayerphoto;
         if(!confirm('Remover essa foto?')) return;
-        try{ await window.storage.delete('sinuca-player-photo:' + slug, true); }catch(e){}
+        try{
+          await supabase.storage.from('photos').remove(['players/' + slug + '.jpg']);
+          await supabase.from('player_photos').delete().eq('slug', slug);
+        }catch(e){}
         playerPhotoIndex = playerPhotoIndex.filter(s => s !== slug);
         delete playerPhotoCache[slug];
-        await window.storage.set('sinuca-player-photo-index', JSON.stringify(playerPhotoIndex), true);
         renderAdminPlayerPhotoList();
       });
     });
@@ -2440,6 +2495,9 @@ async function init(){
   await loadPlayerPhotoIndex();
   await loadRetiredPlayers();
   renderMilestones();
+
+  const { data: { session } } = await supabase.auth.getSession();
+  if(session) showAdminPanel();
 }
 init();
 </script>

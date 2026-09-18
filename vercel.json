@@ -1,0 +1,5 @@
+{
+  "redirects": [
+    { "source": "/", "destination": "/ranking_sinuca.html", "permanent": false }
+  ]
+}
