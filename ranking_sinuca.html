@@ -83,9 +83,25 @@
   .tabs{
     display:flex; justify-content:center; gap:8px; margin-bottom:20px;
     overflow-x:auto; -webkit-overflow-scrolling:touch; scroll-snap-type:x proximity;
-    padding:2px 2px 8px; scrollbar-width:none; -ms-overflow-style:none;
+    padding:2px 2px 8px; position:relative;
+    scrollbar-width:thin; scrollbar-color: var(--gold) rgba(255,255,255,0.1);
   }
-  .tabs::-webkit-scrollbar{ display:none; }
+  .tabs::-webkit-scrollbar{ height:5px; }
+  .tabs::-webkit-scrollbar-track{ background:rgba(255,255,255,0.08); border-radius:3px; }
+  .tabs::-webkit-scrollbar-thumb{ background:var(--gold); border-radius:3px; }
+
+  /* Sombra nas bordas indicando que dá pra arrastar pro lado — só aparece
+     do lado em que ainda tem conteúdo escondido (classes ligadas via JS). */
+  .scroll-fade{ position:relative; }
+  .scroll-fade::before, .scroll-fade::after{
+    content:''; position:absolute; top:0; bottom:8px; width:30px;
+    pointer-events:none; opacity:0; transition:opacity .15s ease; z-index:2;
+  }
+  .scroll-fade::before{ left:0; background:linear-gradient(to right, rgba(0,0,0,0.55), transparent); }
+  .scroll-fade::after{ right:0; background:linear-gradient(to left, rgba(0,0,0,0.55), transparent); }
+  .scroll-fade.can-scroll-left::before{ opacity:1; }
+  .scroll-fade.can-scroll-right::after{ opacity:1; }
+  .rank-table-wrap.scroll-fade::before, .rank-table-wrap.scroll-fade::after{ bottom:0; }
   .tab-btn{
     font-family:'Anton', sans-serif;
     letter-spacing:.06em;
@@ -248,7 +264,11 @@
     border-radius:var(--radius);
     overflow:hidden;
     overflow-x:auto;
+    scrollbar-width:thin; scrollbar-color: var(--gold) rgba(255,255,255,0.1);
   }
+  .rank-table-wrap::-webkit-scrollbar{ height:6px; }
+  .rank-table-wrap::-webkit-scrollbar-track{ background:rgba(255,255,255,0.08); }
+  .rank-table-wrap::-webkit-scrollbar-thumb{ background:var(--gold); border-radius:3px; }
   table{ width:100%; border-collapse:collapse; min-width:560px; }
   table.table-compact{ min-width:0; }
   thead th{
@@ -572,7 +592,7 @@
       <p class="sub">Pontuação por colocação, com peso maior para as copas e peso menor para o torneio de duplas. Ajuste os pesos e filtros abaixo.</p>
     </header>
 
-    <nav class="tabs">
+    <nav class="tabs scroll-fade">
       <button class="tab-btn active" data-tab="ranking">🏆 Ranking</button>
       <button class="tab-btn" data-tab="history">📜 Histórico</button>
       <button class="tab-btn" data-tab="milestones">🎖️ Marcos</button>
@@ -640,7 +660,7 @@
 
       <div class="podium" id="podium"></div>
 
-      <div class="rank-table-wrap">
+      <div class="rank-table-wrap scroll-fade">
         <table>
           <thead>
             <tr>
@@ -657,7 +677,7 @@
 
       <div class="milestone-block-title" style="margin:26px 0 12px;">🎓 Ranking de Títulos por Curso</div>
       <p class="milestone-sub" style="margin-top:-8px;">Quantidade de vezes que cada curso foi campeão (1º lugar), somando as competições marcadas acima em "Configurações do ranking".</p>
-      <div class="rank-table-wrap">
+      <div class="rank-table-wrap scroll-fade">
         <table class="table-compact">
           <thead>
             <tr>
@@ -849,6 +869,19 @@ const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 function publicPhotoUrl(path){
   return sb.storage.from('photos').getPublicUrl(path).data.publicUrl;
+}
+
+// Mostra/esconde a sombra de "arraste pro lado" nas áreas que rolam
+// horizontalmente (abas e tabela do ranking), conforme a posição do scroll.
+function setupScrollHint(el){
+  if(!el) return;
+  function update(){
+    el.classList.toggle('can-scroll-left', el.scrollLeft > 4);
+    el.classList.toggle('can-scroll-right', el.scrollLeft < el.scrollWidth - el.clientWidth - 4);
+  }
+  el.addEventListener('scroll', update, { passive:true });
+  window.addEventListener('resize', update);
+  update();
 }
 
 async function dataUrlToBlob(dataUrl){
@@ -2498,6 +2531,8 @@ async function init(){
 
   const { data: { session } } = await sb.auth.getSession();
   if(session) showAdminPanel();
+
+  document.querySelectorAll('.scroll-fade').forEach(setupScrollHint);
 }
 init();
 </script>
