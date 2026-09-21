@@ -1999,9 +1999,30 @@ async function shareCard(name, slug){
   ctx.lineWidth = 8;
   ctx.strokeRect(4, 4, W-8, H-8);
 
-  // Caixa do cabeçalho (avatar + nome + pontos + curso).
+  // Calcula a altura da caixa de conquistas a partir da quantidade real
+  // (linha confortável de 78px); só encolhe a linha se não couber tudo no
+  // espaço disponível. Depois centraliza cabeçalho+lista juntos no cartão,
+  // em vez de esticar a caixa de conquistas até quase o fim, deixando área
+  // vazia quando a pessoa tem poucas conquistas.
   const boxX = 56, boxW = W - 112;
-  const headerY = 56, headerH = 640;
+  const headerH = 640;
+  const gap = 36, topMin = 40, bottomMin = 40, footerReserve = 110;
+  const listTitleH = 90, listPadBottom = 30, baseRowHeight = 78;
+
+  let listBoxH = listTitleH + (items.length > 0 ? items.length * baseRowHeight : 70) + listPadBottom;
+  const maxTotalH = H - topMin - bottomMin - footerReserve;
+  const maxListBoxH = maxTotalH - headerH - gap;
+  let rowHeight = baseRowHeight;
+  if(listBoxH > maxListBoxH){
+    listBoxH = maxListBoxH;
+    const availRows = listBoxH - listTitleH - listPadBottom;
+    rowHeight = items.length > 0 ? Math.max(16, availRows / items.length) : availRows;
+  }
+
+  const totalH = headerH + gap + listBoxH;
+  const headerY = topMin + (maxTotalH - totalH) / 2;
+
+  // Caixa do cabeçalho (avatar + nome + pontos + curso).
   drawCardBox(ctx, boxX, headerY, boxW, headerH);
 
   const cx = W/2, cy = headerY + 220, r = 140;
@@ -2055,10 +2076,9 @@ async function shareCard(name, slug){
   ctx.fillStyle = '#cbc0a3';
   ctx.fillText([course, retired ? 'Aposentado(a)' : 'Em atividade'].filter(Boolean).join(' · '), W/2, cy + r + 218);
 
-  // Caixa da lista de conquistas: cabe TODAS, encolhendo a altura de cada
-  // linha conforme a quantidade, ao invés de mostrar só as últimas.
-  const listBoxY = headerY + headerH + 36;
-  const listBoxH = H - listBoxY - 130;
+  // Caixa da lista de conquistas: cabe TODAS (altura calculada acima a
+  // partir da quantidade), encolhendo a linha só quando não couber tudo.
+  const listBoxY = headerY + headerH + gap;
   drawCardBox(ctx, boxX, listBoxY, boxW, listBoxH);
 
   const pad = 40;
@@ -2069,19 +2089,16 @@ async function shareCard(name, slug){
   ctx.fillStyle = '#f2ead4';
   ctx.fillText('Conquistas', listLeft, listBoxY + 58);
 
-  const listTop = listBoxY + 92;
-  const listBottom = listBoxY + listBoxH - 28;
-  const availableHeight = listBottom - listTop;
+  const listTop = listBoxY + listTitleH;
 
   if(items.length === 0){
     ctx.font = '28px Arial';
     ctx.fillStyle = '#cbc0a3';
     ctx.fillText('Nenhum resultado registrado ainda.', listLeft, listTop + 30);
   } else {
-    const rowHeight = Math.max(16, Math.min(66, availableHeight / items.length));
-    const fontMain = Math.max(11, Math.min(27, rowHeight * 0.4));
-    const fontSub = Math.max(9, fontMain * 0.76);
-    const medalR = Math.max(9, Math.min(22, rowHeight * 0.34));
+    const fontMain = Math.max(11, Math.min(30, rowHeight * 0.36));
+    const fontSub = Math.max(9, fontMain * 0.75);
+    const medalR = Math.max(9, Math.min(24, rowHeight * 0.32));
     const medalColors = { 1: '#d9ab34', 2: '#aeb6bd', 3: '#c07a3e' };
     items.forEach((it, i) => {
       const rowY = listTop + i * rowHeight;
