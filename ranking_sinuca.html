@@ -687,7 +687,7 @@
         <span class="ctrl-label" style="margin:0;">Filtrar por:</span>
         <select id="galleryCompFilter"><option value="all">Todas as competições</option></select>
       </div>
-      <div id="galleryGrid" class="gallery-grid"></div>
+      <div id="galleryGrid"></div>
     </section>
 
         <section id="panel-milestones" hidden>
@@ -1396,24 +1396,43 @@ function renderGallery(){
   const filter = document.getElementById('galleryCompFilter').value;
   const allC = allCompetitions();
   const combined = allGalleryPhotos();
-  const photos = filter === 'all' ? combined : combined.filter(p => p.comp === filter);
+  const photos = (filter === 'all' ? combined : combined.filter(p => p.comp === filter))
+    .slice()
+    .sort((a,b) => extractYear(b.edition) - extractYear(a.edition));
 
   if(photos.length === 0){
     grid.innerHTML = `<div class="gallery-empty">Nenhuma foto ${filter === 'all' ? 'na galeria' : 'dessa competição'} ainda. Peça pra um admin subir fotos na aba 🔐 Admin.</div>`;
     return;
   }
   lightboxPhotos = photos;
-  grid.innerHTML = photos.map((p, i) => {
-    const c = allC[p.comp];
-    return `<div class="gallery-card" data-idx="${i}">
-      <img src="${p.dataUrl}" alt="Foto de ${c ? c.name : 'competição'} ${p.edition}" loading="lazy">
-      <div class="gallery-tag">
-        <span class="comp" style="color:${c ? c.color : '#fff'};">${c ? c.name : '?'}</span>
-        <span class="edition">${p.edition}</span>
-      </div>
-      ${p.caption ? `<div class="gallery-caption">${p.caption}</div>` : ''}
+
+  // Linha do tempo: agrupa por ano (mais recente primeiro) em vez de misturar tudo.
+  const years = [];
+  const byYear = {};
+  photos.forEach((p, i) => {
+    const year = extractYear(p.edition) || 'Sem data';
+    if(!byYear[year]){ byYear[year] = []; years.push(year); }
+    byYear[year].push({ p, i });
+  });
+
+  grid.innerHTML = years.map(year => {
+    const cardsHTML = byYear[year].map(({p, i}) => {
+      const c = allC[p.comp];
+      return `<div class="gallery-card" data-idx="${i}">
+        <img src="${p.dataUrl}" alt="Foto de ${c ? c.name : 'competição'} ${p.edition}" loading="lazy">
+        <div class="gallery-tag">
+          <span class="comp" style="color:${c ? c.color : '#fff'};">${c ? c.name : '?'}</span>
+          <span class="edition">${p.edition}</span>
+        </div>
+        ${p.caption ? `<div class="gallery-caption">${p.caption}</div>` : ''}
+      </div>`;
+    }).join('');
+    return `<div class="milestone-block">
+      <div class="milestone-block-title">${year}</div>
+      <div class="gallery-grid">${cardsHTML}</div>
     </div>`;
   }).join('');
+
   grid.querySelectorAll('.gallery-card').forEach(card => {
     card.addEventListener('click', () => openLightbox(parseInt(card.dataset.idx, 10)));
   });
