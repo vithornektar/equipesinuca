@@ -1842,6 +1842,7 @@ async function togglePlayerDetail(row){
   if(isOpen){
     row.classList.remove('is-open');
     detailRow.hidden = true;
+    history.replaceState(null, '', location.pathname);
     return;
   }
 
@@ -1852,6 +1853,7 @@ async function togglePlayerDetail(row){
 
   row.classList.add('is-open');
   detailRow.hidden = false;
+  history.replaceState(null, '', '?jogador=' + slug);
   const td = detailRow.querySelector('td');
 
   const items = getPlayerAchievements(name);
@@ -2521,6 +2523,15 @@ async function init(){
   if(session) showAdminPanel();
 
   document.querySelectorAll('.rank-table-wrap').forEach(setupScrollHint);
+
+  const jogadorSlug = new URLSearchParams(location.search).get('jogador');
+  if(jogadorSlug){
+    const row = document.querySelector('tr.rank-row[data-slug="' + jogadorSlug.replace(/"/g,'') + '"]');
+    if(row){
+      await togglePlayerDetail(row);
+      row.scrollIntoView({ block: 'center' });
+    }
+  }
 }
 init();
 </script>
