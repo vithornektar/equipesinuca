@@ -1886,12 +1886,16 @@ async function togglePlayerDetail(row){
       <div class="player-avatar-total-label">pontos</div>
       ${course ? `<div class="player-course-tag">${course}</div>` : ''}
       <div style="margin-top:7px;"><span class="status-tag ${isRetired(name) ? 'aposentado' : 'ativo'}">${isRetired(name) ? 'Aposentado(a)' : 'Em atividade'}</span></div>
+      <button type="button" class="qbtn share-card-btn" style="margin-top:10px;font-size:11px;padding:6px 10px;" data-share-name="${name.replace(/"/g,'&quot;')}" data-share-slug="${slug}">📤 Compartilhar</button>
     </div>
     <div class="player-timeline">
       <div class="timeline-title">Linha do tempo de conquistas</div>
       ${timelineHTML}
     </div>
   </div>`;
+
+  const shareBtn = td.querySelector('.share-card-btn');
+  if(shareBtn) shareBtn.addEventListener('click', () => shareCard(name, slug));
 
   if(!cachedPhoto && playerPhotoIndex.includes(slug)){
     try{
@@ -1911,6 +1915,135 @@ async function togglePlayerDetail(row){
       // sem foto salva — mantém o avatar de iniciais
     }
   }
+}
+
+function loadImageForCanvas(src){
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    if(!src.startsWith('data:')) img.crossOrigin = 'anonymous';
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error('Não foi possível carregar a imagem.'));
+    img.src = src;
+  });
+}
+
+function drawImageCover(ctx, img, x, y, w, h){
+  const scale = Math.max(w / img.width, h / img.height);
+  const sw = w / scale, sh = h / scale;
+  const sx = (img.width - sw) / 2, sy = (img.height - sh) / 2;
+  ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
+}
+
+async function shareCard(name, slug){
+  const items = getPlayerAchievements(name);
+  const total = items.reduce((s,i) => s + i.points, 0);
+  const course = getPlayerCourse(name);
+  const retired = isRetired(name);
+  const recent = items.slice(-3).reverse();
+
+  const W = 720, H = 960;
+  const canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+
+  const bg = ctx.createRadialGradient(W*0.22, 40, 0, W*0.22, 40, W*1.3);
+  bg.addColorStop(0, '#124a35');
+  bg.addColorStop(0.55, '#0e3d2c');
+  bg.addColorStop(1, '#082a1e');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, W, H);
+  ctx.strokeStyle = 'rgba(240,180,41,0.55)';
+  ctx.lineWidth = 6;
+  ctx.strokeRect(3, 3, W-6, H-6);
+
+  const cx = W/2, cy = 230, r = 110;
+  const photoUrl = playerPhotoCache[slug] || BUILT_IN_PLAYER_PHOTOS[slug] || null;
+  let imgDrawn = false;
+  if(photoUrl){
+    try{
+      const img = await loadImageForCanvas(photoUrl);
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI*2);
+      ctx.closePath();
+      ctx.clip();
+      drawImageCover(ctx, img, cx-r, cy-r, r*2, r*2);
+      ctx.restore();
+      imgDrawn = true;
+    }catch(e){ /* usa as iniciais abaixo */ }
+  }
+  if(!imgDrawn){
+    const parts = name.trim().split(/\s+/);
+    const initials = (parts[0][0] + (parts.length > 1 ? parts[parts.length-1][0] : '')).toUpperCase();
+    let hash = 0;
+    for(let i=0; i<name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI*2);
+    ctx.fillStyle = BALL_COLORS[Math.abs(hash) % BALL_COLORS.length];
+    ctx.fill();
+    ctx.fillStyle = '#f4efe1';
+    ctx.font = 'bold 76px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(initials, cx, cy + 6);
+  }
+  ctx.beginPath();
+  ctx.arc(cx, cy, r+6, 0, Math.PI*2);
+  ctx.strokeStyle = '#f0b429';
+  ctx.lineWidth = 5;
+  ctx.stroke();
+
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = '#f2ead4';
+  ctx.font = 'bold 42px Arial';
+  ctx.fillText(name, W/2, 400, W-80);
+
+  ctx.fillStyle = '#f0b429';
+  ctx.font = 'bold 60px Arial';
+  ctx.fillText(total.toFixed(1) + ' pts', W/2, 468);
+
+  ctx.font = '26px Arial';
+  ctx.fillStyle = '#cbc0a3';
+  ctx.fillText([course, retired ? 'Aposentado(a)' : 'Em atividade'].filter(Boolean).join(' · '), W/2, 505);
+
+  let y = 590;
+  ctx.textAlign = 'left';
+  ctx.font = 'bold 26px Arial';
+  ctx.fillStyle = '#f2ead4';
+  ctx.fillText('Últimas conquistas', 60, y);
+  y += 44;
+  if(recent.length === 0){
+    ctx.font = '22px Arial';
+    ctx.fillStyle = '#cbc0a3';
+    ctx.fillText('Nenhum resultado registrado ainda.', 60, y);
+  }
+  recent.forEach(it => {
+    ctx.font = 'bold 24px Arial';
+    ctx.fillStyle = it.compColor || '#f0b429';
+    ctx.fillText(it.pos + 'º · ' + it.compName, 60, y);
+    ctx.font = '20px Arial';
+    ctx.fillStyle = '#cbc0a3';
+    ctx.fillText(it.edition, 60, y + 26);
+    y += 68;
+  });
+
+  ctx.textAlign = 'center';
+  ctx.font = '22px Arial';
+  ctx.fillStyle = '#cbc0a3';
+  ctx.fillText('Hall da Fama da Sinuca · FAUD UFRGS', W/2, H-40);
+
+  canvas.toBlob(blob => {
+    if(!blob) return;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'ranking-' + slug + '.png';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 3000);
+  }, 'image/png');
 }
 
 function renderAll(){
