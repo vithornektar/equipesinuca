@@ -249,15 +249,18 @@
     overflow:hidden;
     overflow-x:auto;
     scrollbar-width:thin; scrollbar-color: var(--gold) rgba(255,255,255,0.1);
-    /* truque pra barra de rolagem ficar em cima em vez de embaixo: inverte a
-       caixa verticalmente (o que joga a barra pra cima) e desinverte o
-       conteúdo de dentro pra ele continuar normal. */
-    transform: scaleY(-1);
   }
   .rank-table-wrap::-webkit-scrollbar{ height:6px; }
   .rank-table-wrap::-webkit-scrollbar-track{ background:rgba(255,255,255,0.08); }
   .rank-table-wrap::-webkit-scrollbar-thumb{ background:var(--gold); border-radius:3px; }
-  .rank-table-wrap > table{ transform: scaleY(-1); }
+  /* truque pra barra de rolagem ficar em cima em vez de embaixo: inverte a
+     caixa verticalmente (o que joga a barra pra cima) e desinverte o
+     conteúdo de dentro pra ele continuar normal. Só nas tabelas de
+     ranking de verdade (.h-scroll-top) — o painel de admin reaproveita
+     .rank-table-wrap só pelo visual de cartão, sem <table> dentro, então
+     não pode entrar nesse truque. */
+  .rank-table-wrap.h-scroll-top{ transform: scaleY(-1); }
+  .rank-table-wrap.h-scroll-top > table{ transform: scaleY(-1); }
   table{ width:100%; border-collapse:collapse; min-width:560px; }
   table.table-compact{ min-width:0; }
   thead th{
@@ -658,7 +661,7 @@
       <div class="podium" id="podium"></div>
 
       <div class="scroll-fade table-fade">
-        <div class="rank-table-wrap">
+        <div class="rank-table-wrap h-scroll-top">
           <table>
             <thead>
               <tr>
@@ -677,7 +680,7 @@
       <div class="milestone-block-title" style="margin:26px 0 12px;">🎓 Ranking de Títulos por Curso</div>
       <p class="milestone-sub" style="margin-top:-8px;">Quantidade de vezes que cada curso foi campeão (1º lugar), somando as competições marcadas acima em "Configurações do ranking".</p>
       <div class="scroll-fade table-fade">
-        <div class="rank-table-wrap">
+        <div class="rank-table-wrap h-scroll-top">
           <table class="table-compact">
             <thead>
               <tr>
