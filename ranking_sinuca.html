@@ -211,23 +211,6 @@
     color:var(--cream); padding:5px 7px; border-radius:6px; font-family:'JetBrains Mono',monospace; font-size:13px;
   }
 
-  .podium{ display:flex; justify-content:center; align-items:flex-end; gap:22px; margin:8px 0 30px; min-height:190px; }
-  .podium-slot{ text-align:center; width:130px; }
-  .podium-slot .stand{
-    background:linear-gradient(180deg, rgba(255,255,255,0.08), rgba(0,0,0,0.15));
-    border:1px solid rgba(255,255,255,0.12);
-    border-bottom:none;
-    border-radius:8px 8px 0 0;
-    display:flex; align-items:flex-end; justify-content:center;
-    padding-bottom:10px;
-  }
-  .podium-slot.p1 .stand{ height:96px; }
-  .podium-slot.p2 .stand{ height:70px; }
-  .podium-slot.p3 .stand{ height:52px; }
-  .podium-name{ font-weight:700; font-size:13.5px; margin-top:10px; line-height:1.25; }
-  .podium-apelido{ font-size:11px; color:var(--cream-dim); font-style:italic; }
-  .podium-pts{ font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--gold); margin-top:3px; font-weight:700; }
-
   .ball{
     width:56px; height:56px; border-radius:50%;
     display:flex; align-items:center; justify-content:center;
@@ -240,7 +223,6 @@
     background:#f4efe1; opacity:.92;
   }
   .ball .num{ position:relative; z-index:2; }
-  .podium-slot .ball{ width:64px; height:64px; font-size:26px; margin:0 auto; }
 
   .rank-table-wrap{
     background:rgba(0,0,0,0.22);
@@ -566,8 +548,6 @@
     .quickbar{ gap:7px; }
     .qbtn{ font-size:11.5px; padding:7px 11px; }
     .points-base{ gap:10px 14px; }
-    .podium{ gap:10px; }
-    .podium-slot{ width:100px; }
     .podio-row .curso{ display:none; }
     .search-wrap{ margin-left:0; width:100%; }
     .search-wrap input{ width:100%; }
@@ -657,8 +637,6 @@
           </div>
         </div>
       </div>
-
-      <div class="podium" id="podium"></div>
 
       <div class="scroll-fade table-fade">
         <div class="rank-table-wrap h-scroll-top">
@@ -1658,26 +1636,6 @@ function computeDisplayRanks(standings){
   return ranks;
 }
 
-function renderPodium(standings){
-  const el = document.getElementById('podium');
-  const top3 = standings.slice(0,3);
-  if(top3.length === 0){ el.innerHTML = ''; return; }
-  const ranks = computeDisplayRanks(standings);
-  const order = [1,0,2];
-  el.innerHTML = order.filter(i => top3[i]).map(i => {
-    const p = top3[i];
-    const slot = i+1;
-    const rank = ranks[i];
-    return `<div class="podium-slot p${slot}">
-      ${ballHTML(rank, slot===1?64:56)}
-      <div class="podium-name">${p.name}</div>
-      <div class="podium-apelido">${p.lastImportantApelido || p.lastApelido || ''}</div>
-      <div class="podium-pts">${p.points.toFixed(1)} pts</div>
-      <div class="stand"></div>
-    </div>`;
-  }).join('');
-}
-
 function medalIcon(pos, size){
   const colors = { 1: '#d9ab34', 2: '#aeb6bd', 3: '#c07a3e' };
   const color = colors[pos] || '#8a8a8a';
@@ -1929,7 +1887,6 @@ async function togglePlayerDetail(row){
 
 function renderAll(){
   const standings = computeStandings();
-  renderPodium(standings);
   renderTable(standings);
   renderCourseTitles();
 }
