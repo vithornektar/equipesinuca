@@ -739,35 +739,35 @@
             <div class="admin-field"><label>Cor</label><input type="color" id="newCompColor" class="admin-input" value="#4a86ad" style="padding:2px 4px;width:52px;height:36px;"></div>
             <button class="qbtn" id="btnAddComp">+ Criar competição</button>
           </div>
-        </div>
 
-        <div class="controls">
-          <span class="ctrl-label">Adicionar resultado (pódio)</span>
-          <div style="display:flex;flex-direction:column;gap:12px;">
-            <div style="display:flex;gap:12px;flex-wrap:wrap;">
-              <div class="admin-field"><label>Competição</label><select id="resComp" class="admin-select"></select></div>
-              <div class="admin-field"><label>Edição / ano</label><input type="text" id="resEdition" class="admin-input" placeholder="Ex: 2026"></div>
-              <div class="admin-field">
-                <label>Colocação</label>
-                <select id="resPos" class="admin-select">
-                  <option value="1">1º lugar</option>
-                  <option value="2">2º lugar</option>
-                  <option value="3">3º lugar</option>
-                  <option value="4">4º lugar</option>
-                </select>
+          <div style="margin-top:18px;padding-top:16px;border-top:1px dashed rgba(255,255,255,0.12);">
+            <span class="ctrl-label">Adicionar resultado (pódio)</span>
+            <div style="display:flex;flex-direction:column;gap:12px;">
+              <div style="display:flex;gap:12px;flex-wrap:wrap;">
+                <div class="admin-field"><label>Competição</label><select id="resComp" class="admin-select"></select></div>
+                <div class="admin-field"><label>Edição / ano</label><input type="text" id="resEdition" class="admin-input" placeholder="Ex: 2026"></div>
+                <div class="admin-field">
+                  <label>Colocação</label>
+                  <select id="resPos" class="admin-select">
+                    <option value="1">1º lugar</option>
+                    <option value="2">2º lugar</option>
+                    <option value="3">3º lugar</option>
+                    <option value="4">4º lugar</option>
+                  </select>
+                </div>
+              </div>
+              <div id="playersFields" style="display:flex;flex-direction:column;gap:8px;"></div>
+              <div style="display:flex;align-items:center;gap:12px;">
+                <button class="qbtn" id="btnAddResult">+ Adicionar resultado</button>
+                <span id="addResultMsg" class="admin-ok-msg"></span>
               </div>
             </div>
-            <div id="playersFields" style="display:flex;flex-direction:column;gap:8px;"></div>
-            <div style="display:flex;align-items:center;gap:12px;">
-              <button class="qbtn" id="btnAddResult">+ Adicionar resultado</button>
-              <span id="addResultMsg" class="admin-ok-msg"></span>
-            </div>
           </div>
-        </div>
 
-        <div class="rank-table-wrap" style="padding-bottom:4px;margin-bottom:22px;">
-          <div class="ctrl-label" style="padding:14px 16px 6px;">Cadastrado manualmente</div>
-          <div id="customEntriesList" style="padding:0 16px 16px;"></div>
+          <div style="margin-top:18px;padding-top:16px;border-top:1px dashed rgba(255,255,255,0.12);">
+            <span class="ctrl-label">Cadastrado manualmente</span>
+            <div id="customEntriesList"></div>
+          </div>
         </div>
 
         <div class="controls">
@@ -784,11 +784,11 @@
               <span id="addPhotoMsg" class="admin-ok-msg"></span>
             </div>
           </div>
-        </div>
 
-        <div class="rank-table-wrap" style="padding-bottom:4px;margin-bottom:22px;">
-          <div class="ctrl-label" style="padding:14px 16px 6px;">Fotos da galeria</div>
-          <div id="adminPhotoList" style="padding:0 16px 16px;"></div>
+          <div style="margin-top:18px;padding-top:16px;border-top:1px dashed rgba(255,255,255,0.12);">
+            <span class="ctrl-label">Fotos da galeria</span>
+            <div id="adminPhotoList"></div>
+          </div>
         </div>
 
         <div class="controls">
@@ -804,11 +804,11 @@
               <span id="addPlayerPhotoMsg" class="admin-ok-msg"></span>
             </div>
           </div>
-        </div>
 
-        <div class="rank-table-wrap" style="padding-bottom:4px;margin-bottom:22px;">
-          <div class="ctrl-label" style="padding:14px 16px 6px;">Fotos de jogadores(as) cadastradas</div>
-          <div id="adminPlayerPhotoList" style="padding:0 16px 16px;"></div>
+          <div style="margin-top:18px;padding-top:16px;border-top:1px dashed rgba(255,255,255,0.12);">
+            <span class="ctrl-label">Fotos de jogadores(as) cadastradas</span>
+            <div id="adminPlayerPhotoList"></div>
+          </div>
         </div>
 
         <div class="controls">
@@ -818,11 +818,11 @@
             <div class="admin-field" style="flex:1;min-width:200px;"><label>Jogador(a)</label><select id="retiredSelect" class="admin-select" style="width:100%;"></select></div>
             <button class="qbtn" id="btnMarkRetired">Marcar como aposentado(a)</button>
           </div>
-        </div>
 
-        <div class="rank-table-wrap" style="padding-bottom:4px;margin-bottom:22px;">
-          <div class="ctrl-label" style="padding:14px 16px 6px;">Lista de aposentados(as)</div>
-          <div id="adminRetiredList" style="padding:0 16px 16px;"></div>
+          <div style="margin-top:18px;padding-top:16px;border-top:1px dashed rgba(255,255,255,0.12);">
+            <span class="ctrl-label">Lista de aposentados(as)</span>
+            <div id="adminRetiredList"></div>
+          </div>
         </div>
       </div>
     </section>
