@@ -1947,28 +1947,27 @@ function drawImageCover(ctx, img, x, y, w, h){
 }
 
 async function shareCard(name, slug){
-  const items = getPlayerAchievements(name);
+  const items = getPlayerAchievements(name).slice().reverse();
   const total = items.reduce((s,i) => s + i.points, 0);
   const course = getPlayerCourse(name);
   const retired = isRetired(name);
-  const recent = items.slice(-3).reverse();
 
-  const W = 720, H = 960;
+  const W = 1080, H = 1920; // formato stories, 9:16
   const canvas = document.createElement('canvas');
   canvas.width = W; canvas.height = H;
   const ctx = canvas.getContext('2d');
 
-  const bg = ctx.createRadialGradient(W*0.22, 40, 0, W*0.22, 40, W*1.3);
+  const bg = ctx.createRadialGradient(W*0.22, 60, 0, W*0.22, 60, W*1.3);
   bg.addColorStop(0, '#124a35');
   bg.addColorStop(0.55, '#0e3d2c');
   bg.addColorStop(1, '#082a1e');
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, W, H);
   ctx.strokeStyle = 'rgba(240,180,41,0.55)';
-  ctx.lineWidth = 6;
-  ctx.strokeRect(3, 3, W-6, H-6);
+  ctx.lineWidth = 8;
+  ctx.strokeRect(4, 4, W-8, H-8);
 
-  const cx = W/2, cy = 230, r = 110;
+  const cx = W/2, cy = 320, r = 150;
   const photoUrl = playerPhotoCache[slug] || BUILT_IN_PLAYER_PHOTOS[slug] || null;
   let imgDrawn = false;
   if(photoUrl){
@@ -1994,56 +1993,67 @@ async function shareCard(name, slug){
     ctx.fillStyle = BALL_COLORS[Math.abs(hash) % BALL_COLORS.length];
     ctx.fill();
     ctx.fillStyle = '#f4efe1';
-    ctx.font = 'bold 76px Arial';
+    ctx.font = 'bold 104px Arial';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(initials, cx, cy + 6);
+    ctx.fillText(initials, cx, cy + 8);
   }
   ctx.beginPath();
-  ctx.arc(cx, cy, r+6, 0, Math.PI*2);
+  ctx.arc(cx, cy, r+8, 0, Math.PI*2);
   ctx.strokeStyle = '#f0b429';
-  ctx.lineWidth = 5;
+  ctx.lineWidth = 7;
   ctx.stroke();
 
   ctx.textAlign = 'center';
   ctx.textBaseline = 'alphabetic';
   ctx.fillStyle = '#f2ead4';
-  ctx.font = 'bold 42px Arial';
-  ctx.fillText(name, W/2, 400, W-80);
+  ctx.font = 'bold 58px Arial';
+  ctx.fillText(name, W/2, 560, W-100);
 
   ctx.fillStyle = '#f0b429';
-  ctx.font = 'bold 60px Arial';
-  ctx.fillText(total.toFixed(1) + ' pts', W/2, 468);
+  ctx.font = 'bold 82px Arial';
+  ctx.fillText(total.toFixed(1) + ' pts', W/2, 655);
 
-  ctx.font = '26px Arial';
+  ctx.font = '36px Arial';
   ctx.fillStyle = '#cbc0a3';
-  ctx.fillText([course, retired ? 'Aposentado(a)' : 'Em atividade'].filter(Boolean).join(' · '), W/2, 505);
+  ctx.fillText([course, retired ? 'Aposentado(a)' : 'Em atividade'].filter(Boolean).join(' · '), W/2, 705);
 
-  let y = 590;
+  // Lista de conquistas: cabe TODAS, encolhendo a fonte/altura de cada
+  // linha conforme a quantidade, ao invés de mostrar só as últimas.
+  const listLeft = 80, listRight = W-80;
+  const listTop = 800, listBottom = H - 130;
+  const availableHeight = listBottom - listTop;
+
   ctx.textAlign = 'left';
-  ctx.font = 'bold 26px Arial';
+  ctx.font = 'bold 40px Arial';
   ctx.fillStyle = '#f2ead4';
-  ctx.fillText('Últimas conquistas', 60, y);
-  y += 44;
-  if(recent.length === 0){
-    ctx.font = '22px Arial';
+  ctx.fillText('Conquistas', listLeft, listTop - 24);
+
+  if(items.length === 0){
+    ctx.font = '28px Arial';
     ctx.fillStyle = '#cbc0a3';
-    ctx.fillText('Nenhum resultado registrado ainda.', 60, y);
+    ctx.fillText('Nenhum resultado registrado ainda.', listLeft, listTop + 30);
+  } else {
+    const rowHeight = Math.max(16, Math.min(64, availableHeight / items.length));
+    const fontMain = Math.max(11, Math.min(28, rowHeight * 0.42));
+    const fontSub = Math.max(9, fontMain * 0.78);
+    items.forEach((it, i) => {
+      const rowY = listTop + i * rowHeight;
+      ctx.font = `bold ${fontMain}px Arial`;
+      ctx.fillStyle = it.compColor || '#f0b429';
+      ctx.fillText(it.pos + 'º · ' + it.compName, listLeft, rowY + fontMain);
+      ctx.font = `${fontSub}px Arial`;
+      ctx.fillStyle = '#cbc0a3';
+      ctx.textAlign = 'right';
+      ctx.fillText(it.edition, listRight, rowY + fontMain);
+      ctx.textAlign = 'left';
+    });
   }
-  recent.forEach(it => {
-    ctx.font = 'bold 24px Arial';
-    ctx.fillStyle = it.compColor || '#f0b429';
-    ctx.fillText(it.pos + 'º · ' + it.compName, 60, y);
-    ctx.font = '20px Arial';
-    ctx.fillStyle = '#cbc0a3';
-    ctx.fillText(it.edition, 60, y + 26);
-    y += 68;
-  });
 
   ctx.textAlign = 'center';
-  ctx.font = '22px Arial';
+  ctx.font = '30px Arial';
   ctx.fillStyle = '#cbc0a3';
-  ctx.fillText('Hall da Fama da Sinuca · FAUD UFRGS', W/2, H-40);
+  ctx.fillText('Hall da Fama da Sinuca · FAUD UFRGS', W/2, H-55);
 
   canvas.toBlob(blob => {
     if(!blob) return;
