@@ -2351,6 +2351,36 @@ function populatePhotoCompSelect(){
   if(current) sel.value = current;
 }
 
+/* ---------------- ADMIN: LEGENDA AUTOMÁTICA DA FOTO ---------------- */
+// Monta uma legenda com o pódio da competição/edição escolhida, pra não
+// precisar digitar os nomes de novo — mas só preenche se a pessoa ainda não
+// tiver escrito uma legenda própria (edição manual sempre tem prioridade).
+function buildPodiumCaption(compId, edition){
+  const comp = allCompetitions()[compId];
+  if(!comp || !edition) return '';
+  const results = allResults()
+    .filter(r => r.comp === compId && r.edition === edition && r.pos <= 3)
+    .sort((a,b) => a.pos - b.pos);
+  if(results.length === 0) return '';
+  const parts = results.map(r => `${r.players.map(p => p.name).join('/')} (${r.pos}º)`);
+  const joined = parts.length === 1 ? parts[0] : parts.slice(0, -1).join(', ') + ' e ' + parts[parts.length - 1];
+  const artigo = comp.type === 'copa' ? 'da' : 'do';
+  return `Pódio ${artigo} ${comp.name} ${edition} — ${joined}`;
+}
+
+function updateAutoCaption(){
+  const captionEl = document.getElementById('photoCaption');
+  if(captionEl.value.trim() !== '' && captionEl.dataset.autofilled !== '1') return;
+  const auto = buildPodiumCaption(document.getElementById('photoComp').value, document.getElementById('photoEdition').value.trim());
+  if(auto){
+    captionEl.value = auto;
+    captionEl.dataset.autofilled = '1';
+  }
+}
+document.getElementById('photoComp').addEventListener('change', updateAutoCaption);
+document.getElementById('photoEdition').addEventListener('input', updateAutoCaption);
+document.getElementById('photoCaption').addEventListener('input', function(){ this.dataset.autofilled = '0'; });
+
 document.getElementById('btnAddPhoto').addEventListener('click', async () => {
   const fileInput = document.getElementById('photoFile');
   const compId = document.getElementById('photoComp').value;
@@ -2383,6 +2413,7 @@ document.getElementById('btnAddPhoto').addEventListener('click', async () => {
     fileInput.value = '';
     document.getElementById('photoEdition').value = '';
     document.getElementById('photoCaption').value = '';
+    document.getElementById('photoCaption').dataset.autofilled = '0';
     msg.textContent = 'Foto adicionada!';
 
     renderGallery();
