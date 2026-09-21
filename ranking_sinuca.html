@@ -1283,6 +1283,24 @@ function computeLongestPodiumStreak(){
   return (best && best.streak >= 2) ? best : null;
 }
 
+function computeBestDupla(){
+  const allC = allCompetitions();
+  const groups = {};
+  allResults().filter(r => allC[r.comp] && allC[r.comp].type === 'dupla' && active[r.comp] && r.players.length === 2).forEach(r => {
+    const names = r.players.map(p => p.name).sort();
+    const key = names.join('||');
+    if(!groups[key]) groups[key] = { names, podiums: 0, total: 0, apelido: r.players[0].apelido };
+    groups[key].total++;
+    if(r.pos <= 3) groups[key].podiums++;
+    groups[key].apelido = r.players[0].apelido;
+  });
+  let best = null;
+  Object.values(groups).forEach(g => {
+    if(!best || g.podiums > best.podiums || (g.podiums === best.podiums && g.total > best.total)) best = g;
+  });
+  return (best && best.podiums > 0) ? best : null;
+}
+
 function renderMilestones(){
   const allC = allCompetitions();
 
@@ -1318,6 +1336,7 @@ function renderMilestones(){
   const mostCourse = computeMostVictoriousCourse();
   const mostPodiums = computeMostPodiums();
   const streak = computeLongestPodiumStreak();
+  const bestDupla = computeBestDupla();
   const cards = [];
   if(mostCourse) cards.push(`
     <div class="record-card">
@@ -1336,6 +1355,12 @@ function renderMilestones(){
       <div class="label">Maior sequência de pódios seguidos</div>
       <div class="value">${streak.name}</div>
       <div class="detail">${streak.streak} anos seguidos (${streak.start}–${streak.end}) em ${allC[streak.comp] ? allC[streak.comp].name : '?'}</div>
+    </div>`);
+  if(bestDupla) cards.push(`
+    <div class="record-card">
+      <div class="label">Dupla com mais pódios juntos</div>
+      <div class="value">${bestDupla.names.join(' & ')}</div>
+      <div class="detail">${bestDupla.podiums} pódio${bestDupla.podiums>1?'s':''} em ${bestDupla.total} participaç${bestDupla.total>1?'ões':'ão'} juntos${bestDupla.apelido && bestDupla.apelido !== '—' ? ' · "' + bestDupla.apelido + '"' : ''}</div>
     </div>`);
   CURATED_RECORDS.forEach(rec => cards.push(`
     <div class="record-card">
