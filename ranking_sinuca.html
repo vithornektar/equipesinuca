@@ -8,6 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 <style>
   :root{
+    --felt-light: #124a35;
     --felt: #0e3d2c;
     --felt-dark: #082a1e;
     --felt-line: rgba(255,255,255,0.045);
@@ -42,7 +43,7 @@
   .cloth{
     background:
       repeating-linear-gradient(45deg, var(--felt-line) 0 2px, transparent 2px 6px),
-      radial-gradient(ellipse at 20% 0%, #124a35, var(--felt) 55%, #0a3324 100%);
+      radial-gradient(ellipse at 20% 0%, var(--felt-light), var(--felt) 55%, var(--felt-dark) 100%);
     border-radius:18px;
     padding:28px 24px 20px;
     box-shadow: 0 20px 60px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(240,180,41,0.35), inset 0 0 40px rgba(0,0,0,0.45), inset 0 0 0 2px rgba(0,0,0,0.25);
@@ -726,6 +727,16 @@
         </div>
 
         <div class="controls">
+          <span class="ctrl-label">Aparência — cor do pano da mesa</span>
+          <p style="font-size:11.5px;color:var(--cream-dim);margin:0 0 12px;line-height:1.5;">Define a cor de fundo do site pra bater com a cor atual do pano da mesa de sinuca. Vale pra qualquer um que abrir o site.</p>
+          <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+            <div class="admin-field"><label>Cor do pano</label><input type="color" id="feltColorInput" class="admin-input" style="padding:2px 4px;width:52px;height:36px;"></div>
+            <button class="qbtn" id="btnSaveFeltColor">Salvar cor</button>
+            <span id="feltColorMsg" class="admin-ok-msg"></span>
+          </div>
+        </div>
+
+        <div class="controls">
           <span class="ctrl-label">Criar nova competição (opcional)</span>
           <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
             <div class="admin-field"><label>Nome</label><input type="text" id="newCompName" class="admin-input" placeholder="Ex: Copa Verão"></div>
@@ -1169,6 +1180,62 @@ async function saveRetiredPlayers(){
 
 function isRetired(name){
   return retiredPlayers.includes(name);
+}
+
+/* ---------------- APARÊNCIA: COR DO PANO DA MESA ---------------- */
+// A cor de fundo (o "pano") é editável pelo admin pra bater com a cor
+// real do pano da mesa de sinuca. Guardamos só a cor base no banco e
+// derivamos as variações clara/escura do gradiente a partir dela, tanto
+// pro CSS (--felt/--felt-light/--felt-dark) quanto pro canvas do cartão
+// de compartilhamento, pra tudo ficar consistente com qualquer cor.
+const DEFAULT_FELT_COLOR = '#0e3d2c';
+let feltColor = DEFAULT_FELT_COLOR;
+
+function hexToRgb(hex){
+  hex = hex.replace('#','');
+  if(hex.length === 3) hex = hex.split('').map(c => c+c).join('');
+  const num = parseInt(hex, 16);
+  return { r: (num >> 16) & 255, g: (num >> 8) & 255, b: num & 255 };
+}
+function rgbToHex(r,g,b){
+  return '#' + [r,g,b].map(v => Math.max(0,Math.min(255,Math.round(v))).toString(16).padStart(2,'0')).join('');
+}
+function mixColor(hex, targetHex, t){
+  const a = hexToRgb(hex), b = hexToRgb(targetHex);
+  return rgbToHex(a.r+(b.r-a.r)*t, a.g+(b.g-a.g)*t, a.b+(b.b-a.b)*t);
+}
+function feltShades(base){
+  return {
+    light: mixColor(base, '#ffffff', 0.12),
+    mid: base,
+    dark: mixColor(base, '#000000', 0.35),
+  };
+}
+
+function applyFeltColor(hex){
+  feltColor = hex;
+  const shades = feltShades(hex);
+  const root = document.documentElement.style;
+  root.setProperty('--felt', shades.mid);
+  root.setProperty('--felt-light', shades.light);
+  root.setProperty('--felt-dark', shades.dark);
+}
+
+async function loadFeltColor(){
+  try{
+    const { data } = await sb.from('site_settings').select('felt_color').eq('id', 1).maybeSingle();
+    applyFeltColor((data && data.felt_color) || DEFAULT_FELT_COLOR);
+  }catch(e){
+    applyFeltColor(DEFAULT_FELT_COLOR);
+  }
+}
+
+async function saveFeltColor(hex){
+  try{
+    await sb.from('site_settings').upsert({ id: 1, felt_color: hex });
+  }catch(e){
+    alert('Não foi possível salvar agora. Verifique se você está logado como admin e tente novamente.');
+  }
 }
 
 /* ---------------- MARCOS HISTÓRICOS ---------------- */
@@ -1978,11 +2045,13 @@ async function shareCard(name, slug){
   canvas.width = W; canvas.height = H;
   const ctx = canvas.getContext('2d');
 
-  // Fundo feltro com textura diagonal, igual ao ".cloth" do site.
+  // Fundo feltro com textura diagonal, igual ao ".cloth" do site — usa a
+  // mesma cor do pano configurada no admin.
+  const cardShades = feltShades(feltColor);
   const bg = ctx.createRadialGradient(W*0.22, 60, 0, W*0.22, 60, W*1.3);
-  bg.addColorStop(0, '#124a35');
-  bg.addColorStop(0.55, '#0e3d2c');
-  bg.addColorStop(1, '#082a1e');
+  bg.addColorStop(0, cardShades.light);
+  bg.addColorStop(0.55, cardShades.mid);
+  bg.addColorStop(1, cardShades.dark);
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, W, H);
   ctx.save();
@@ -2347,6 +2416,7 @@ function showAdminPanel(){
   isAdmin = true;
   document.getElementById('adminLogin').hidden = true;
   document.getElementById('adminPanel').hidden = false;
+  document.getElementById('feltColorInput').value = feltColor;
   populateResCompSelect();
   renderAdminEntries();
   populatePhotoCompSelect();
@@ -2385,6 +2455,15 @@ document.getElementById('adminPassInput').addEventListener('keydown', e => {
 document.getElementById('btnAdminLogout').addEventListener('click', async () => {
   await sb.auth.signOut();
   showAdminLogin();
+});
+
+document.getElementById('btnSaveFeltColor').addEventListener('click', async () => {
+  const hex = document.getElementById('feltColorInput').value;
+  const msg = document.getElementById('feltColorMsg');
+  applyFeltColor(hex);
+  await saveFeltColor(hex);
+  msg.textContent = 'Salvo!';
+  setTimeout(() => { msg.textContent = ''; }, 2000);
 });
 
 /* ---------------- ADMIN: CAMPOS DE JOGADORES ---------------- */
@@ -2783,6 +2862,7 @@ function renderAdminEntries(){
 
 /* ---------------- INIT ---------------- */
 async function init(){
+  await loadFeltColor();
   await loadCustomData();
   renderControls();
   renderAll();

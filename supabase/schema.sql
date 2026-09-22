@@ -42,6 +42,16 @@ create table if not exists retired_players (
   created_at timestamptz not null default now()
 );
 
+-- Linha única com configurações gerais do site (hoje só a cor do pano da
+-- mesa, que o admin edita pra bater com a cor real do pano físico).
+create table if not exists site_settings (
+  id int primary key default 1,
+  felt_color text not null default '#0e3d2c',
+  updated_at timestamptz not null default now()
+);
+insert into site_settings (id, felt_color) values (1, '#0e3d2c')
+  on conflict (id) do nothing;
+
 -- ============ ROW LEVEL SECURITY ============
 -- Leitura publica (qualquer visitante ve o ranking/galeria sem login).
 -- Escrita (insert/update/delete) só pra quem estiver autenticado (o admin logado).
@@ -51,6 +61,7 @@ alter table results enable row level security;
 alter table gallery_photos enable row level security;
 alter table player_photos enable row level security;
 alter table retired_players enable row level security;
+alter table site_settings enable row level security;
 
 drop policy if exists "public read" on competitions;
 create policy "public read" on competitions for select using (true);
@@ -80,6 +91,12 @@ drop policy if exists "public read" on retired_players;
 create policy "public read" on retired_players for select using (true);
 drop policy if exists "admin write" on retired_players;
 create policy "admin write" on retired_players for all
+  using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+
+drop policy if exists "public read" on site_settings;
+create policy "public read" on site_settings for select using (true);
+drop policy if exists "admin write" on site_settings;
+create policy "admin write" on site_settings for all
   using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 
 -- ============ STORAGE (fotos) ============
