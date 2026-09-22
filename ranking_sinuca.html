@@ -628,6 +628,14 @@
                 <option value="NI">Não informado</option>
               </select>
             </div>
+            <div class="df-item">
+              <span class="ctrl-label">Situação</span>
+              <select id="filterStatus">
+                <option value="all">Todos</option>
+                <option value="active">Em atividade</option>
+                <option value="retired">Aposentados(as)</option>
+              </select>
+            </div>
           </div>
 
           <div class="quickbar">
@@ -1032,6 +1040,7 @@ let active = { fad:true, minas:true, taquaraco:true, duplas:true };
 let searchTerm = "";
 let courseFilter = "all";
 let genderFilter = "all";
+let statusFilter = "all";
 
 /* ---------------- ADMIN / DADOS CUSTOM ---------------- */
 // A senha não fica mais no código: o login é validado de verdade pelo
@@ -1626,6 +1635,9 @@ function computeStandings(){
   if(genderFilter !== 'all'){
     list = list.filter(p => p.generos.has(genderFilter));
   }
+  if(statusFilter !== 'all'){
+    list = list.filter(p => statusFilter === 'retired' ? isRetired(p.name) : !isRetired(p.name));
+  }
   list.sort((a,b) => b.points - a.points || b.golds - a.golds || b.silvers - a.silvers || b.bronzes - a.bronzes || a.name.localeCompare(b.name));
   return list;
 }
@@ -1641,6 +1653,7 @@ function populateCursoFilter(){
 }
 document.getElementById('filterCurso').addEventListener('change', e => { courseFilter = e.target.value; updateFiltersSummary(); renderAll(); });
 document.getElementById('filterGenero').addEventListener('change', e => { genderFilter = e.target.value; updateFiltersSummary(); renderAll(); });
+document.getElementById('filterStatus').addEventListener('change', e => { statusFilter = e.target.value; updateFiltersSummary(); renderAll(); });
 
 function renderControls(){
   const wrap = document.getElementById('compControls');
@@ -1717,6 +1730,9 @@ function updateFiltersSummary(){
   if(courseFilter && courseFilter !== 'all') parts.push(courseFilter);
   if(genderFilter && genderFilter !== 'all'){
     parts.push(genderFilter === 'F' ? 'Feminino' : genderFilter === 'M' ? 'Masculino' : 'Não informado');
+  }
+  if(statusFilter && statusFilter !== 'all'){
+    parts.push(statusFilter === 'retired' ? 'Aposentados(as)' : 'Em atividade');
   }
   if(searchTerm && searchTerm.trim()) parts.push(`"${searchTerm.trim()}"`);
   summary.textContent = parts.length ? parts.join(' · ') : 'nenhum ativo';
