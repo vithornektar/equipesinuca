@@ -1223,19 +1223,23 @@ function applyFeltColor(hex){
 
 async function loadFeltColor(){
   try{
-    const { data } = await sb.from('site_settings').select('felt_color').eq('id', 1).maybeSingle();
+    const { data, error } = await sb.from('site_settings').select('felt_color').eq('id', 1).maybeSingle();
+    if(error) throw error;
     applyFeltColor((data && data.felt_color) || DEFAULT_FELT_COLOR);
   }catch(e){
+    // Tabela "site_settings" ainda não criada no Supabase (ver supabase/schema.sql), ou sem conexão.
+    console.warn('Não deu pra carregar a cor do pano, usando o padrão:', e && e.message || e);
     applyFeltColor(DEFAULT_FELT_COLOR);
   }
 }
 
 async function saveFeltColor(hex){
-  try{
-    await sb.from('site_settings').upsert({ id: 1, felt_color: hex });
-  }catch(e){
-    alert('Não foi possível salvar agora. Verifique se você está logado como admin e tente novamente.');
+  const { error } = await sb.from('site_settings').upsert({ id: 1, felt_color: hex });
+  if(error){
+    alert('Não foi possível salvar a cor: ' + error.message);
+    return false;
   }
+  return true;
 }
 
 /* ---------------- MARCOS HISTÓRICOS ---------------- */
@@ -2461,9 +2465,11 @@ document.getElementById('btnSaveFeltColor').addEventListener('click', async () =
   const hex = document.getElementById('feltColorInput').value;
   const msg = document.getElementById('feltColorMsg');
   applyFeltColor(hex);
-  await saveFeltColor(hex);
-  msg.textContent = 'Salvo!';
-  setTimeout(() => { msg.textContent = ''; }, 2000);
+  const ok = await saveFeltColor(hex);
+  if(ok){
+    msg.textContent = 'Salvo!';
+    setTimeout(() => { msg.textContent = ''; }, 2000);
+  }
 });
 
 /* ---------------- ADMIN: CAMPOS DE JOGADORES ---------------- */
